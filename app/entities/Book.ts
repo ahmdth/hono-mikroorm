@@ -6,7 +6,6 @@ type PublisherEntity = Publisher;
 
 @Entity()
 export class Book extends BaseEntity {
-
   @Property()
   title: string;
 

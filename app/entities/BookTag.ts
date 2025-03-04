@@ -3,7 +3,6 @@ import { Book } from '.';
 
 @Entity()
 export class BookTag {
-
   @PrimaryKey()
   id!: number;
 
@@ -16,5 +15,4 @@ export class BookTag {
   constructor(name: string) {
     this.name = name;
   }
-
 }

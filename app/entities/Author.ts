@@ -7,7 +7,6 @@ type BookEntity = Book;
 
 @Entity()
 export class Author extends BaseEntity {
-
   @Property()
   name: string;
 
@@ -34,5 +33,4 @@ export class Author extends BaseEntity {
     this.name = name;
     this.email = email;
   }
-
 }

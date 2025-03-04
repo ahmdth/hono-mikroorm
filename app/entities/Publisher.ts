@@ -19,7 +19,6 @@ export class Publisher {
     this.name = name;
     this.type = type;
   }
-
 }
 
 export enum PublisherType {

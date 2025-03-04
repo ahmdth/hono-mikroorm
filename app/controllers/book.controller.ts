@@ -31,7 +31,6 @@ router.get('/:id', async (ctx: Context) => {
 });
 
 router.post('/', async (ctx: Context) => {
-  const { title, authorId } = await ctx.req.json()
   const book = z.object({
     title: z.string(),
     authorId: z.number(),
