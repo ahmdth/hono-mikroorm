@@ -1,22 +1,24 @@
 import { QueryOrder, wrap } from '@mikro-orm/sqlite';
 import { Context, Hono } from 'hono';
 import { DI } from '../server';
-import { z } from 'zod';
-import { Book } from '../entities';
+import { paginationValidation, idValidation } from '../utils/validation';
+import { bookValidation } from '../utils/bookValidation';
 
 const router = new Hono();
 
-router.get('/', async (ctx: Context) => {
+router.get('/', paginationValidation, async (ctx: Context) => {
+  let { page = 1, limit = 10 } = ctx.req.valid('query');
   return ctx.json(await DI.books.findAll({
     populate: ['author'],
     orderBy: { title: QueryOrder.DESC },
-    limit: 20,
+    limit,
+    offset: (page - 1) * limit,
   }), 200);
 });
 
-router.get('/:id', async (ctx: Context) => {
+router.get('/:id', idValidation, async (ctx: Context) => {
   try {
-    const id = z.coerce.number().parse(ctx.req.param('id'));
+    const { id } = ctx.req.valid('param');
     const book = await DI.books.findOne(id, { populate: ['author'] });
 
     if (!book) {
@@ -30,19 +32,10 @@ router.get('/:id', async (ctx: Context) => {
   }
 });
 
-router.post('/', async (ctx: Context) => {
-  const book = z.object({
-    title: z.string(),
-    authorId: z.number(),
-    publisherId: z.optional(z.number()),
-    metaObject: z.optional(z.object({ value: z.any() })),
-    metaArray: z.optional(z.array(z.any())),
-    metaArrayOfStrings: z.optional(z.string())
-  })
-  const data = book.safeParse(await ctx.req.json())
-
+router.post('/', bookValidation, async (ctx: Context) => {
+  const data = ctx.req.valid('json');
   try {
-    const book = DI.books.create(data.data);
+    const book = DI.books.create(data);
     await DI.em.flush();
 
     return ctx.json(book);
@@ -52,16 +45,16 @@ router.post('/', async (ctx: Context) => {
   }
 });
 
-router.put('/:id', async (ctx: Context) => {
+router.put('/:id', idValidation, bookValidation, async (ctx: Context) => {
   try {
-    const params = z.object({ id: z.number() }).parse(ctx.req.param());
-    const book = await DI.books.findOne(params.id);
+    const { id } = ctx.req.valid('param');
+    const book = await DI.books.findOne(id);
 
     if (!book) {
       return ctx.json({ message: 'Book not found' }, 400);
     }
 
-    wrap(book).assign(await ctx.req.json());
+    wrap(book).assign(ctx.req.valid('json'));
     await DI.em.flush();
 
     return ctx.json(book);
@@ -71,4 +64,19 @@ router.put('/:id', async (ctx: Context) => {
   }
 });
 
+router.delete('/:id', idValidation, async (ctx: Context) => {
+  try {
+    const { id } = ctx.req.valid('param');
+    const book = await DI.books.findOne(id);
+
+    if (!book) {
+      return ctx.json({ message: 'Book not found' }, 400);
+    }
+    await DI.em.removeAndFlush(book)
+    return ctx.json({ message: "Book deleted succssfully" });
+  } catch (e: any) {
+    console.error(e);
+    return ctx.json({ message: e.message }, 400);
+  }
+});
 export const BookController = router;
